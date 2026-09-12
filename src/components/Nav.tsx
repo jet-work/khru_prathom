@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getProfile } from "@/lib/auth";
 import SignOutButton from "@/components/SignOutButton";
+import CartBadge from "@/components/CartBadge";
 
 export default async function Nav() {
   const profile = await getProfile();
@@ -17,9 +18,12 @@ export default async function Nav() {
               อุปกรณ์
             </Link>
             {profile.role === "student" && (
-              <Link href="/my-requests" className="text-gray-600 hover:text-gray-900">
-                รายการของฉัน
-              </Link>
+              <>
+                <CartBadge />
+                <Link href="/my-requests" className="text-gray-600 hover:text-gray-900">
+                  รายการของฉัน
+                </Link>
+              </>
             )}
             {profile.role === "admin" && (
               <>
