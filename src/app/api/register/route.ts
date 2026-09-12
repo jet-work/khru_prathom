@@ -16,6 +16,23 @@ export async function POST(request: Request) {
   const { full_name, student_id, year, email, password } = parsed.data;
 
   const supabase = createAdminClient();
+
+  // profiles.student_id is unique; check it up front so a collision (e.g.
+  // someone registering twice with a different email) gets a clear message
+  // instead of the generic error the auth.users trigger failure produces.
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("student_id", student_id)
+    .maybeSingle();
+
+  if (existingProfile) {
+    return NextResponse.json(
+      { error: "รหัสนักศึกษานี้มีบัญชีอยู่แล้ว กรุณาเข้าสู่ระบบแทน" },
+      { status: 400 }
+    );
+  }
+
   const { error } = await supabase.auth.admin.createUser({
     email,
     password,
