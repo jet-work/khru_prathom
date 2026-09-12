@@ -24,26 +24,29 @@ export default function RegisterPage() {
 
   async function onSubmit(values: RegisterInput) {
     setFormError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        data: {
-          full_name: values.full_name,
-          student_id: values.student_id,
-          year: values.year,
-        },
-      },
+
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
     });
-    if (error) {
-      setFormError(
-        error.message.includes("already registered")
-          ? "อีเมลนี้ถูกใช้งานแล้ว"
-          : "สมัครสมาชิกไม่สำเร็จ กรุณาลองใหม่"
-      );
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setFormError(body.error ?? "สมัครสมาชิกไม่สำเร็จ กรุณาลองใหม่");
       return;
     }
+
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
+    });
+    if (signInError) {
+      setFormError("สมัครสำเร็จ แต่เข้าสู่ระบบอัตโนมัติไม่สำเร็จ กรุณาเข้าสู่ระบบด้วยตนเอง");
+      router.push("/login");
+      return;
+    }
+
     router.push("/equipment");
     router.refresh();
   }
