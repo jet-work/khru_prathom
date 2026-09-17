@@ -32,7 +32,7 @@ export const borrowRequestSchema = z
     requested_quantity: z.coerce.number().int().min(1, "ต้องยืมอย่างน้อย 1 ชิ้น"),
     borrow_date: z.string().min(1, "กรุณาเลือกวันที่ยืม"),
     return_date: z.string().min(1, "กรุณาเลือกวันที่คืน"),
-    checkout_photo_url: z.string().min(1, "กรุณาถ่ายรูปอุปกรณ์ก่อนส่งคำขอยืม"),
+    checkout_photo_url: z.string().optional(),
     checkout_condition_note: z.string().optional(),
   })
   .refine((data) => data.return_date >= data.borrow_date, {
