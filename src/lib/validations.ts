@@ -32,6 +32,8 @@ export const borrowRequestSchema = z
     requested_quantity: z.coerce.number().int().min(1, "ต้องยืมอย่างน้อย 1 ชิ้น"),
     borrow_date: z.string().min(1, "กรุณาเลือกวันที่ยืม"),
     return_date: z.string().min(1, "กรุณาเลือกวันที่คืน"),
+    checkout_photo_url: z.string().min(1, "กรุณาถ่ายรูปอุปกรณ์ก่อนส่งคำขอยืม"),
+    checkout_condition_note: z.string().optional(),
   })
   .refine((data) => data.return_date >= data.borrow_date, {
     message: "วันที่คืนต้องไม่ก่อนวันที่ยืม",
@@ -40,8 +42,13 @@ export const borrowRequestSchema = z
 export type BorrowRequestFormValues = z.input<typeof borrowRequestSchema>;
 export type BorrowRequestInput = z.output<typeof borrowRequestSchema>;
 
+// Admin actions (no photo needed — evidence already came from the student):
+//   "approve" | "reject" transition a pending request; "confirm-return"
+//   finalizes a request the student already marked as returned.
+// Student action: "request-return" attaches the checkin photo/note to their
+// own approved request without changing its status (see 0005 migration).
 export const reviewActionSchema = z.object({
-  action: z.enum(["approve", "reject", "return"]),
+  action: z.enum(["approve", "reject", "confirm-return", "request-return"]),
   photo_url: z.string().optional(),
   condition_note: z.string().optional(),
 });

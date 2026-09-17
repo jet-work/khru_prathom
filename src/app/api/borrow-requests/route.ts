@@ -17,7 +17,14 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
-  const { equipment_id, requested_quantity, borrow_date, return_date } = parsed.data;
+  const {
+    equipment_id,
+    requested_quantity,
+    borrow_date,
+    return_date,
+    checkout_photo_url,
+    checkout_condition_note,
+  } = parsed.data;
 
   const { data: equipment } = await supabase
     .from("equipment_with_availability")
@@ -35,6 +42,8 @@ export async function POST(request: Request) {
     requested_quantity,
     borrow_date,
     return_date,
+    checkout_photo_url,
+    checkout_condition_note: checkout_condition_note || null,
   });
 
   if (error) {

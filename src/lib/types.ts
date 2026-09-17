@@ -2,7 +2,13 @@ export type UserRole = "admin" | "student";
 
 export type BorrowStatus = "pending" | "approved" | "returned" | "rejected";
 
-export type DisplayStatus = "pending" | "borrowed" | "overdue" | "returned" | "rejected";
+export type DisplayStatus =
+  | "pending"
+  | "borrowed"
+  | "overdue"
+  | "return_pending"
+  | "returned"
+  | "rejected";
 
 export interface Profile {
   id: string;

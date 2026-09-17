@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/auth";
+import { getProfile } from "@/lib/auth";
 import { reviewActionSchema } from "@/lib/validations";
 
 export async function PATCH(
@@ -8,9 +8,9 @@ export async function PATCH(
   ctx: RouteContext<"/api/borrow-requests/[id]">
 ) {
   const { id } = await ctx.params;
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
+  const profile = await getProfile();
+  if (!profile) {
+    return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
@@ -24,7 +24,7 @@ export async function PATCH(
 
   const { data: existing } = await supabase
     .from("borrow_requests")
-    .select("*, equipment:equipment_id(id, total_quantity)")
+    .select("*")
     .eq("id", id)
     .single();
 
@@ -32,12 +32,41 @@ export async function PATCH(
     return NextResponse.json({ error: "ไม่พบคำขอ" }, { status: 404 });
   }
 
+  // Student-initiated: attach the checkin photo without changing status.
+  if (action === "request-return") {
+    if (existing.student_id !== profile.id) {
+      return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
+    }
+    if (existing.status !== "approved") {
+      return NextResponse.json({ error: "คำขอนี้ยังไม่อยู่ในสถานะกำลังยืม" }, { status: 409 });
+    }
+    if (existing.checkin_photo_url) {
+      return NextResponse.json({ error: "ส่งเรื่องคืนไปแล้ว รอแอดมินยืนยัน" }, { status: 409 });
+    }
+    if (!photo_url) {
+      return NextResponse.json({ error: "กรุณาถ่ายรูปอุปกรณ์ตอนคืน" }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from("borrow_requests")
+      .update({
+        checkin_photo_url: photo_url,
+        checkin_condition_note: condition_note || null,
+      })
+      .eq("id", id);
+
+    if (error) return NextResponse.json({ error: "บันทึกการคืนไม่สำเร็จ" }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Everything else is admin-only.
+  if (profile.role !== "admin") {
+    return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
+  }
+
   if (action === "approve") {
     if (existing.status !== "pending") {
       return NextResponse.json({ error: "คำขอนี้ถูกดำเนินการแล้ว" }, { status: 409 });
-    }
-    if (!photo_url) {
-      return NextResponse.json({ error: "กรุณาถ่ายรูปหลักฐานตอนส่งมอบ" }, { status: 400 });
     }
 
     const { data: avail } = await supabase
@@ -54,10 +83,8 @@ export async function PATCH(
       .from("borrow_requests")
       .update({
         status: "approved",
-        reviewed_by: admin.id,
+        reviewed_by: profile.id,
         reviewed_at: new Date().toISOString(),
-        checkout_photo_url: photo_url,
-        checkout_condition_note: condition_note ?? null,
       })
       .eq("id", id);
 
@@ -71,19 +98,19 @@ export async function PATCH(
     }
     const { error } = await supabase
       .from("borrow_requests")
-      .update({ status: "rejected", reviewed_by: admin.id, reviewed_at: new Date().toISOString() })
+      .update({ status: "rejected", reviewed_by: profile.id, reviewed_at: new Date().toISOString() })
       .eq("id", id);
 
     if (error) return NextResponse.json({ error: "ปฏิเสธไม่สำเร็จ" }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 
-  if (action === "return") {
+  if (action === "confirm-return") {
     if (existing.status !== "approved") {
       return NextResponse.json({ error: "คำขอนี้ยังไม่อยู่ในสถานะกำลังยืม" }, { status: 409 });
     }
-    if (!photo_url) {
-      return NextResponse.json({ error: "กรุณาถ่ายรูปหลักฐานตอนรับคืน" }, { status: 400 });
+    if (!existing.checkin_photo_url) {
+      return NextResponse.json({ error: "นักศึกษายังไม่ได้ถ่ายรูปตอนคืน" }, { status: 409 });
     }
 
     const { error } = await supabase
@@ -91,8 +118,6 @@ export async function PATCH(
       .update({
         status: "returned",
         actual_return_date: new Date().toISOString(),
-        checkin_photo_url: photo_url,
-        checkin_condition_note: condition_note ?? null,
       })
       .eq("id", id);
 
