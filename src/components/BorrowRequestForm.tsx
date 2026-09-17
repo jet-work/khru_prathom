@@ -9,8 +9,9 @@ import {
   type BorrowRequestFormValues,
   type BorrowRequestInput,
 } from "@/lib/validations";
-import { Field, Input } from "@/components/ui/Input";
+import { Field, Input, Textarea } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import PhotoUpload from "@/components/PhotoUpload";
 
 export default function BorrowRequestForm({
   equipmentId,
@@ -25,6 +26,7 @@ export default function BorrowRequestForm({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<BorrowRequestFormValues, unknown, BorrowRequestInput>({
     resolver: zodResolver(borrowRequestSchema),
@@ -58,6 +60,7 @@ export default function BorrowRequestForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-sm">
       <input type="hidden" {...register("equipment_id")} />
+      <input type="hidden" {...register("checkout_photo_url")} />
       <Field label={`จำนวน (ว่าง ${availableQuantity})`} error={errors.requested_quantity?.message}>
         <Input type="number" min={1} max={availableQuantity} {...register("requested_quantity")} />
       </Field>
@@ -66,6 +69,18 @@ export default function BorrowRequestForm({
       </Field>
       <Field label="วันที่คืน" error={errors.return_date?.message}>
         <Input type="date" {...register("return_date")} />
+      </Field>
+      <Field
+        label="ถ่ายรูปอุปกรณ์ก่อนรับไป (หลักฐานสภาพตอนยืม)"
+        error={errors.checkout_photo_url?.message}
+      >
+        <PhotoUpload
+          pathPrefix={`checkout/${equipmentId}`}
+          onUploaded={(url) => setValue("checkout_photo_url", url, { shouldValidate: true })}
+        />
+      </Field>
+      <Field label="บันทึกสภาพอุปกรณ์ (ถ้ามี)">
+        <Textarea rows={2} {...register("checkout_condition_note")} />
       </Field>
       {formError && <p className="text-sm text-red-600">{formError}</p>}
       <Button type="submit" disabled={isSubmitting} className="w-full">

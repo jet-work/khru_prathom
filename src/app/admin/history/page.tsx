@@ -61,6 +61,7 @@ export default async function AdminHistoryPage({
             <option value="pending">รออนุมัติ</option>
             <option value="borrowed">กำลังยืม</option>
             <option value="overdue">เกินกำหนด</option>
+            <option value="return_pending">รอยืนยันการคืน</option>
             <option value="returned">คืนแล้ว</option>
             <option value="rejected">ถูกปฏิเสธ</option>
           </Select>
@@ -78,6 +79,7 @@ export default async function AdminHistoryPage({
               <th className="p-3">จำนวน</th>
               <th className="p-3">วันยืม-คืน</th>
               <th className="p-3">สถานะ</th>
+              <th className="p-3">รูป</th>
             </tr>
           </thead>
           <tbody>
@@ -97,6 +99,28 @@ export default async function AdminHistoryPage({
                 </td>
                 <td className="p-3">
                   <StatusBadge status={deriveStatus(r)} />
+                </td>
+                <td className="p-3">
+                  <div className="flex gap-1">
+                    {r.checkout_photo_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={r.checkout_photo_url}
+                        alt="ตอนยืม"
+                        title="ตอนยืม"
+                        className="h-10 w-10 object-cover rounded border"
+                      />
+                    )}
+                    {r.checkin_photo_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={r.checkin_photo_url}
+                        alt="ตอนคืน"
+                        title="ตอนคืน"
+                        className="h-10 w-10 object-cover rounded border"
+                      />
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

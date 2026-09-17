@@ -3,29 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
-import PhotoUpload from "@/components/PhotoUpload";
 import Button from "@/components/ui/Button";
-import { Textarea } from "@/components/ui/Input";
 import { deriveStatus } from "@/lib/status";
 import type { BorrowRequestWithRelations } from "@/lib/types";
 
 export default function AdminRequestRow({ request }: { request: BorrowRequestWithRelations }) {
   const router = useRouter();
-  const [openAction, setOpenAction] = useState<"approve" | "return" | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const status = deriveStatus(request);
 
-  async function sendAction(action: "approve" | "reject" | "return") {
+  async function sendAction(action: "approve" | "reject" | "confirm-return") {
     setSubmitting(true);
     setError(null);
     const res = await fetch(`/api/borrow-requests/${request.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, photo_url: photoUrl ?? undefined, condition_note: note || undefined }),
+      body: JSON.stringify({ action }),
     });
     setSubmitting(false);
     if (!res.ok) {
@@ -33,9 +28,6 @@ export default function AdminRequestRow({ request }: { request: BorrowRequestWit
       setError(body.error ?? "ดำเนินการไม่สำเร็จ");
       return;
     }
-    setOpenAction(null);
-    setPhotoUrl(null);
-    setNote("");
     router.refresh();
   }
 
@@ -52,54 +44,54 @@ export default function AdminRequestRow({ request }: { request: BorrowRequestWit
         <StatusBadge status={status} />
       </div>
 
-      {status === "pending" && openAction !== "approve" && (
+      {status === "pending" && (
         <div className="mt-3 flex gap-2">
-          <Button onClick={() => setOpenAction("approve")}>อนุมัติ</Button>
+          <Button onClick={() => sendAction("approve")} disabled={submitting}>
+            อนุมัติ
+          </Button>
           <Button variant="danger" onClick={() => sendAction("reject")} disabled={submitting}>
             ไม่อนุมัติ
           </Button>
         </div>
       )}
 
-      {(status === "borrowed" || status === "overdue") && openAction !== "return" && (
+      {(status === "borrowed" || status === "overdue") && (
+        <p className="mt-3 text-sm text-gray-500">รอนักศึกษาถ่ายรูปและกดคืนของในระบบ</p>
+      )}
+
+      {status === "return_pending" && (
         <div className="mt-3">
-          <Button onClick={() => setOpenAction("return")}>บันทึกการคืน</Button>
+          <Button onClick={() => sendAction("confirm-return")} disabled={submitting}>
+            {submitting ? "กำลังบันทึก..." : "ยืนยันการคืน"}
+          </Button>
         </div>
       )}
 
-      {openAction && (
-        <div className="mt-3 border-t pt-3 space-y-3">
-          <p className="text-sm font-medium">
-            {openAction === "approve" ? "ถ่ายรูปตอนส่งมอบอุปกรณ์" : "ถ่ายรูปตอนรับคืนอุปกรณ์"}
-          </p>
-          <PhotoUpload pathPrefix={`${openAction}/${request.id}`} onUploaded={setPhotoUrl} />
-          <Textarea
-            placeholder="บันทึกสภาพอุปกรณ์ (ถ้ามี)"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={2}
-          />
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <Button onClick={() => sendAction(openAction)} disabled={submitting || !photoUrl}>
-              {submitting ? "กำลังบันทึก..." : "ยืนยัน"}
-            </Button>
-            <Button variant="secondary" onClick={() => setOpenAction(null)} disabled={submitting}>
-              ยกเลิก
-            </Button>
-          </div>
-        </div>
-      )}
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
       {(request.checkout_photo_url || request.checkin_photo_url) && (
         <div className="mt-3 flex gap-3">
           {request.checkout_photo_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={request.checkout_photo_url} alt="ตอนส่งมอบ" className="h-16 w-16 object-cover rounded border" />
+            <div className="text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={request.checkout_photo_url}
+                alt="ตอนส่งมอบ"
+                className="h-16 w-16 object-cover rounded border"
+              />
+              <p className="text-xs text-gray-500 mt-0.5">ตอนยืม</p>
+            </div>
           )}
           {request.checkin_photo_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={request.checkin_photo_url} alt="ตอนรับคืน" className="h-16 w-16 object-cover rounded border" />
+            <div className="text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={request.checkin_photo_url}
+                alt="ตอนรับคืน"
+                className="h-16 w-16 object-cover rounded border"
+              />
+              <p className="text-xs text-gray-500 mt-0.5">ตอนคืน</p>
+            </div>
           )}
         </div>
       )}

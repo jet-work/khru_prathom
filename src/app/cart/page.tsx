@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/Button";
-import { Field, Input } from "@/components/ui/Input";
+import { Field, Input, Textarea } from "@/components/ui/Input";
+import PhotoUpload from "@/components/PhotoUpload";
 import type { EquipmentWithAvailability } from "@/lib/types";
 
 interface CartRow {
@@ -22,6 +23,8 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [borrowDate, setBorrowDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
+  const [checkoutPhotoUrl, setCheckoutPhotoUrl] = useState<string | null>(null);
+  const [checkoutNote, setCheckoutNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState<{ name: string; ok: boolean; error?: string }[] | null>(
     null
@@ -50,7 +53,7 @@ export default function CartPage() {
   }, [items]);
 
   async function handleCheckout() {
-    if (!borrowDate || !returnDate) return;
+    if (!borrowDate || !returnDate || !checkoutPhotoUrl) return;
     setSubmitting(true);
     setResults(null);
 
@@ -65,6 +68,8 @@ export default function CartPage() {
           requested_quantity: row.quantity,
           borrow_date: borrowDate,
           return_date: returnDate,
+          checkout_photo_url: checkoutPhotoUrl,
+          checkout_condition_note: checkoutNote || undefined,
         }),
       });
       if (res.ok) {
@@ -149,10 +154,16 @@ export default function CartPage() {
                 <Input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />
               </Field>
             </div>
+            <Field label="ถ่ายรูปอุปกรณ์ทั้งหมดก่อนรับไป (ใช้ร่วมกันทุกชิ้นในตะกร้านี้)">
+              <PhotoUpload pathPrefix="checkout/cart" onUploaded={setCheckoutPhotoUrl} />
+            </Field>
+            <Field label="บันทึกสภาพอุปกรณ์ (ถ้ามี)">
+              <Textarea rows={2} value={checkoutNote} onChange={(e) => setCheckoutNote(e.target.value)} />
+            </Field>
             <div className="flex gap-2">
               <Button
                 onClick={handleCheckout}
-                disabled={submitting || !borrowDate || !returnDate}
+                disabled={submitting || !borrowDate || !returnDate || !checkoutPhotoUrl}
                 className="flex-1"
               >
                 {submitting ? "กำลังส่งคำขอ..." : `ส่งคำขอยืมทั้งหมด (${rows.length} ชิ้น)`}

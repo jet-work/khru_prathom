@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import AdminRequestRow from "@/components/AdminRequestRow";
+import { deriveStatus } from "@/lib/status";
 import type { BorrowRequestWithRelations } from "@/lib/types";
 
 export default async function AdminRequestsPage() {
@@ -13,7 +14,10 @@ export default async function AdminRequestsPage() {
 
   const requests = (data ?? []) as BorrowRequestWithRelations[];
   const pending = requests.filter((r) => r.status === "pending");
-  const active = requests.filter((r) => r.status === "approved");
+  const returnPending = requests.filter((r) => deriveStatus(r) === "return_pending");
+  const active = requests.filter(
+    (r) => r.status === "approved" && deriveStatus(r) !== "return_pending"
+  );
 
   return (
     <div className="space-y-8">
@@ -24,6 +28,18 @@ export default async function AdminRequestsPage() {
         ) : (
           <div className="space-y-3">
             {pending.map((r) => (
+              <AdminRequestRow key={r.id} request={r} />
+            ))}
+          </div>
+        )}
+      </div>
+      <div>
+        <h2 className="text-xl font-semibold mb-4">รอยืนยันการคืน ({returnPending.length})</h2>
+        {returnPending.length === 0 ? (
+          <p className="text-gray-500">ไม่มีรายการรอยืนยันการคืน</p>
+        ) : (
+          <div className="space-y-3">
+            {returnPending.map((r) => (
               <AdminRequestRow key={r.id} request={r} />
             ))}
           </div>
