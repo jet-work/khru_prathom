@@ -58,6 +58,12 @@ export default function BorrowRequestForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-sm">
       <input type="hidden" {...register("equipment_id")} />
+      <Field label="ชื่อ-นามสกุล" error={errors.borrower_name?.message}>
+        <Input {...register("borrower_name")} />
+      </Field>
+      <Field label="รหัสนักศึกษา" error={errors.borrower_student_id?.message}>
+        <Input {...register("borrower_student_id")} />
+      </Field>
       <Field label={`จำนวน (ว่าง ${availableQuantity})`} error={errors.requested_quantity?.message}>
         <Input type="number" min={1} max={availableQuantity} {...register("requested_quantity")} />
       </Field>

@@ -20,6 +20,8 @@ export default function CartPage() {
   const { items, updateQuantity, removeItem, clear } = useCart();
   const [rows, setRows] = useState<CartRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [borrowerName, setBorrowerName] = useState("");
+  const [borrowerStudentId, setBorrowerStudentId] = useState("");
   const [borrowDate, setBorrowDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -50,7 +52,7 @@ export default function CartPage() {
   }, [items]);
 
   async function handleCheckout() {
-    if (!borrowDate || !returnDate) return;
+    if (!borrowerName.trim() || !borrowerStudentId.trim() || !borrowDate || !returnDate) return;
     setSubmitting(true);
     setResults(null);
 
@@ -61,6 +63,8 @@ export default function CartPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          borrower_name: borrowerName,
+          borrower_student_id: borrowerStudentId,
           equipment_id: row.equipmentId,
           requested_quantity: row.quantity,
           borrow_date: borrowDate,
@@ -140,8 +144,14 @@ export default function CartPage() {
           </div>
 
           <div className="bg-white border rounded-lg p-4 space-y-4">
-            <p className="font-medium text-sm">กำหนดวันยืม-คืน (ใช้ร่วมกันทุกชิ้น)</p>
+            <p className="font-medium text-sm">ข้อมูลผู้ยืมและวันยืม-คืน (ใช้ร่วมกันทุกชิ้น)</p>
             <div className="grid grid-cols-2 gap-3">
+              <Field label="ชื่อ-นามสกุล">
+                <Input value={borrowerName} onChange={(e) => setBorrowerName(e.target.value)} />
+              </Field>
+              <Field label="รหัสนักศึกษา">
+                <Input value={borrowerStudentId} onChange={(e) => setBorrowerStudentId(e.target.value)} />
+              </Field>
               <Field label="วันที่ยืม">
                 <Input type="date" value={borrowDate} onChange={(e) => setBorrowDate(e.target.value)} />
               </Field>
@@ -152,7 +162,9 @@ export default function CartPage() {
             <div className="flex gap-2">
               <Button
                 onClick={handleCheckout}
-                disabled={submitting || !borrowDate || !returnDate}
+                disabled={
+                  submitting || !borrowerName.trim() || !borrowerStudentId.trim() || !borrowDate || !returnDate
+                }
                 className="flex-1"
               >
                 {submitting ? "กำลังส่งคำขอ..." : `ส่งคำขอยืมทั้งหมด (${rows.length} ชิ้น)`}

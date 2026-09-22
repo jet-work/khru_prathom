@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
 import PhotoUpload from "@/components/PhotoUpload";
 import Button from "@/components/ui/Button";
@@ -11,10 +10,13 @@ import type { BorrowRequest, Equipment } from "@/lib/types";
 
 export default function MyRequestRow({
   request,
+  studentId,
+  onUpdated,
 }: {
   request: BorrowRequest & { equipment: Equipment };
+  studentId: string;
+  onUpdated: () => void;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -34,6 +36,7 @@ export default function MyRequestRow({
         action: "request-return",
         photo_url: photoUrl,
         condition_note: note || undefined,
+        borrower_student_id: studentId,
       }),
     });
     setSubmitting(false);
@@ -43,7 +46,7 @@ export default function MyRequestRow({
       return;
     }
     setOpen(false);
-    router.refresh();
+    onUpdated();
   }
 
   return (
