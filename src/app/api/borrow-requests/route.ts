@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { borrowRequestSchema } from "@/lib/validations";
 
+// Students have no account/session at all — this route is the only way
+// borrow_requests gets written for them, using the service-role client
+// since RLS deliberately grants the anon role nothing on this table
+// (see supabase/migrations/0008_public_read_access.sql).
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
-  }
+  const supabase = createAdminClient();
 
   const body = await request.json().catch(() => null);
   const parsed = borrowRequestSchema.safeParse(body);
@@ -18,6 +15,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
   const {
+    borrower_name,
+    borrower_student_id,
     equipment_id,
     requested_quantity,
     borrow_date,
@@ -37,7 +36,8 @@ export async function POST(request: Request) {
   }
 
   const { error } = await supabase.from("borrow_requests").insert({
-    student_id: user.id,
+    borrower_name,
+    borrower_student_id,
     equipment_id,
     requested_quantity,
     borrow_date,

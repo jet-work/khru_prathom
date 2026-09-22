@@ -18,7 +18,7 @@ export default async function AdminHistoryPage({
   const [{ data: rows }, { data: rooms }] = await Promise.all([
     supabase
       .from("borrow_requests")
-      .select("*, equipment:equipment_id(*), student:student_id(*)")
+      .select("*, equipment:equipment_id(*)")
       .order("created_at", { ascending: false }),
     supabase.from("equipment").select("room").not("room", "is", null),
   ]);
@@ -30,8 +30,8 @@ export default async function AdminHistoryPage({
     const needle = student.toLowerCase();
     requests = requests.filter(
       (r) =>
-        r.student.full_name.toLowerCase().includes(needle) ||
-        r.student.student_id.toLowerCase().includes(needle)
+        r.borrower_name.toLowerCase().includes(needle) ||
+        r.borrower_student_id.toLowerCase().includes(needle)
     );
   }
   if (status) requests = requests.filter((r) => deriveStatus(r) === status);
@@ -86,10 +86,8 @@ export default async function AdminHistoryPage({
             {requests.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="p-3">
-                  {r.student.full_name}
-                  <span className="block text-xs text-gray-500">
-                    รหัส {r.student.student_id} · ปี {r.student.year}
-                  </span>
+                  {r.borrower_name}
+                  <span className="block text-xs text-gray-500">รหัส {r.borrower_student_id}</span>
                 </td>
                 <td className="p-3">{r.equipment.name}</td>
                 <td className="p-3">{r.equipment.room ?? "-"}</td>

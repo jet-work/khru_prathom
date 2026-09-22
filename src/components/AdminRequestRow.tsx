@@ -37,7 +37,7 @@ export default function AdminRequestRow({ request }: { request: BorrowRequestWit
         <div>
           <p className="font-medium text-gray-900">{request.equipment.name}</p>
           <p className="text-sm text-gray-500">
-            {request.student.full_name} (รหัส {request.student.student_id}, ปี {request.student.year}) ·
+            {request.borrower_name} (รหัส {request.borrower_student_id}) ·
             จำนวน {request.requested_quantity} · {request.borrow_date} ถึง {request.return_date}
           </p>
         </div>

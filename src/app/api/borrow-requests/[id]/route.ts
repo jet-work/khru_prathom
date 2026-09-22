@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getProfile } from "@/lib/auth";
 import { reviewActionSchema } from "@/lib/validations";
 
@@ -8,33 +9,37 @@ export async function PATCH(
   ctx: RouteContext<"/api/borrow-requests/[id]">
 ) {
   const { id } = await ctx.params;
-  const profile = await getProfile();
-  if (!profile) {
-    return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
-  }
 
   const body = await request.json().catch(() => null);
   const parsed = reviewActionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
-  const { action, photo_url, condition_note } = parsed.data;
+  const { action, photo_url, condition_note, borrower_student_id } = parsed.data;
 
-  const supabase = await createClient();
-
-  const { data: existing } = await supabase
-    .from("borrow_requests")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (!existing) {
-    return NextResponse.json({ error: "ไม่พบคำขอ" }, { status: 404 });
-  }
-
-  // Student-initiated: attach the checkin photo without changing status.
+  // Student-initiated: no session exists at all, so identity is proven by
+  // re-supplying the student ID that must match the row (see the plan's
+  // "accepted trade-off" note — this is a targeted-access check, not a
+  // strong security boundary, matching how a paper sign-out sheet works).
   if (action === "request-return") {
-    if (existing.student_id !== profile.id) {
+    if (!borrower_student_id) {
+      return NextResponse.json({ error: "กรุณากรอกรหัสนักศึกษา" }, { status: 400 });
+    }
+
+    const adminSupabase = createAdminClient();
+    const { data: existing } = await adminSupabase
+      .from("borrow_requests")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (!existing) {
+      return NextResponse.json({ error: "ไม่พบคำขอ" }, { status: 404 });
+    }
+    if (
+      existing.borrower_student_id.trim().toLowerCase() !==
+      borrower_student_id.trim().toLowerCase()
+    ) {
       return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
     }
     if (existing.status !== "approved") {
@@ -47,7 +52,7 @@ export async function PATCH(
       return NextResponse.json({ error: "กรุณาถ่ายรูปอุปกรณ์ตอนคืน" }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await adminSupabase
       .from("borrow_requests")
       .update({
         checkin_photo_url: photo_url,
@@ -59,9 +64,24 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   }
 
-  // Everything else is admin-only.
-  if (profile.role !== "admin") {
+  // Everything else is admin-only, using the session client so the
+  // is_admin() RLS policy stays a real database-level backstop behind
+  // this role check.
+  const profile = await getProfile();
+  if (!profile || profile.role !== "admin") {
     return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
+  }
+
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("borrow_requests")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!existing) {
+    return NextResponse.json({ error: "ไม่พบคำขอ" }, { status: 404 });
   }
 
   if (action === "approve") {

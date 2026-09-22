@@ -8,7 +8,7 @@ export default async function AdminRequestsPage() {
 
   const { data } = await supabase
     .from("borrow_requests")
-    .select("*, equipment:equipment_id(*), student:student_id(*)")
+    .select("*, equipment:equipment_id(*)")
     .in("status", ["pending", "approved"])
     .order("created_at", { ascending: false });
 

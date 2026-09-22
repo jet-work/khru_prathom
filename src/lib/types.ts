@@ -37,7 +37,8 @@ export interface EquipmentWithAvailability extends Equipment {
 
 export interface BorrowRequest {
   id: string;
-  student_id: string;
+  borrower_name: string;
+  borrower_student_id: string;
   equipment_id: string;
   requested_quantity: number;
   borrow_date: string;
@@ -55,5 +56,4 @@ export interface BorrowRequest {
 
 export interface BorrowRequestWithRelations extends BorrowRequest {
   equipment: Equipment;
-  student: Profile;
 }

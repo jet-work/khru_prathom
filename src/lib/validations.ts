@@ -1,15 +1,5 @@
 import { z } from "zod";
 
-export const registerSchema = z.object({
-  full_name: z.string().min(2, "กรุณากรอกชื่อ-นามสกุล"),
-  student_id: z.string().min(1, "กรุณากรอกรหัสนักศึกษา"),
-  year: z.coerce.number().int().min(1).max(4),
-  email: z.string().email("อีเมลไม่ถูกต้อง"),
-  password: z.string().min(6, "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"),
-});
-export type RegisterFormValues = z.input<typeof registerSchema>;
-export type RegisterInput = z.output<typeof registerSchema>;
-
 export const loginSchema = z.object({
   email: z.string().email("อีเมลไม่ถูกต้อง"),
   password: z.string().min(1, "กรุณากรอกรหัสผ่าน"),
@@ -28,6 +18,8 @@ export type EquipmentInput = z.output<typeof equipmentSchema>;
 
 export const borrowRequestSchema = z
   .object({
+    borrower_name: z.string().trim().min(1, "กรุณากรอกชื่อ-นามสกุล"),
+    borrower_student_id: z.string().trim().min(1, "กรุณากรอกรหัสนักศึกษา"),
     equipment_id: z.string().uuid(),
     requested_quantity: z.coerce.number().int().min(1, "ต้องยืมอย่างน้อย 1 ชิ้น"),
     borrow_date: z.string().min(1, "กรุณาเลือกวันที่ยืม"),
@@ -51,5 +43,14 @@ export const reviewActionSchema = z.object({
   action: z.enum(["approve", "reject", "confirm-return", "request-return"]),
   photo_url: z.string().optional(),
   condition_note: z.string().optional(),
+  // Required only for "request-return" (no session to authenticate the
+  // caller, so the student re-supplies the ID that must match the row).
+  borrower_student_id: z.string().optional(),
 });
 export type ReviewActionInput = z.infer<typeof reviewActionSchema>;
+
+export const lookupSchema = z.object({
+  student_id: z.string().trim().min(1, "กรุณากรอกรหัสนักศึกษา"),
+  name: z.string().trim().optional(),
+});
+export type LookupInput = z.infer<typeof lookupSchema>;

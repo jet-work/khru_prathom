@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { loginSchema, type LoginInput } from "@/lib/validations";
 import { Field, Input } from "@/components/ui/Input";
@@ -27,13 +26,16 @@ export default function LoginPage() {
       setFormError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
       return;
     }
-    router.push("/equipment");
+    router.push("/admin");
     router.refresh();
   }
 
   return (
     <div className="max-w-sm mx-auto mt-10">
-      <h1 className="text-xl font-semibold mb-6 text-center">เข้าสู่ระบบ</h1>
+      <h1 className="text-xl font-semibold text-center">เข้าสู่ระบบแอดมิน</h1>
+      <p className="text-sm text-gray-500 text-center mt-1 mb-6">
+        สำหรับแอดมินเท่านั้น — นักศึกษาไม่ต้องเข้าสู่ระบบเพื่อยืมอุปกรณ์
+      </p>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Field label="อีเมล" error={errors.email?.message}>
           <Input type="email" {...register("email")} />
@@ -46,12 +48,6 @@ export default function LoginPage() {
           {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
         </Button>
       </form>
-      <p className="text-sm text-gray-600 mt-4 text-center">
-        ยังไม่มีบัญชี?{" "}
-        <Link href="/register" className="text-blue-600 hover:underline">
-          สมัครสมาชิก
-        </Link>
-      </p>
     </div>
   );
 }
