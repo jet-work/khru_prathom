@@ -40,6 +40,14 @@ export default async function Nav() {
               <SignOutButton />
             </>
           )}
+          {!isAdmin && (
+            <Link
+              href="/login"
+              className="px-3 py-1.5 rounded-md bg-gray-900 text-white hover:bg-gray-700"
+            >
+              เข้าสู่ระบบแอดมิน
+            </Link>
+          )}
         </nav>
       </div>
     </header>
